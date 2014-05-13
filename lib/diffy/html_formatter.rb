@@ -50,7 +50,89 @@ module Diffy
     def highlighted_words
       chunks = @diff.each_chunk.
         reject{|c| c == '\ No newline at end of file'"\n"}
+      
+      # patch starts
+      i = 0
+      chunks.each do |element|
+        chunks[i] = element.gsub(/\.\s|&nbsp;<\/p><p>|\?\s|!\s/,".\r\n")
+        i += 1
+      end
+      temp_chunks = Array.new
+      full_chunks = Array.new
+      chunks.each do |chunk|
+        temp_chunks = chunk.split("\r\n")
+        temp_chunks.each do |t|
+          #t = " #{t}"
+          full_chunks << t
+        end
+      end
+      chunks = full_chunks
+      #find indices of the 2 elements of chunks array containing + and - in their 1st positions
+      #replace + and - by blank
+      #start comparing elements in pairs starting from those 2 indices
+      #if elements are different, insert a blank space at the beginning of the element
+      #else for the 1st element, insert - at the beginning of the element
+      #     for the 2nd element, insert + at the beginning of the element
+      
+      i = 0
+      k = 0
+      j = 0
+      chunks.each do |line|
+        if line[0] == "-"
+          p "j assigned"
+          line[0] = ""
+          j = i 
+        end
+        if line[0] == "+"
+          p "k assigned"
+          line[0] = ""
+          k = i 
+        end
+        i += 1
+      end
+      p "value of j is #{j}"
+      p "value of k is #{k}"
+      i = k
+      p "value of i is #{i}"
+      
+      chunks_to_delete = Array.new
+      until j==i do
+        if chunks[j] != chunks[k]
+          chunks << "-#{chunks[j]}"
+          chunks[j] = "Del#{chunks[j]}"
+          chunks_to_delete << chunks[j]
+          chunks << "+#{chunks[k]}"
+          chunks[k] = "Del#{chunks[k]}"
+          chunks_to_delete << chunks[k]
+        else
+          chunks << " #{chunks[j]}"
+          chunks[k] = "Del#{chunks[k]}"
+          chunks[j] = "Del#{chunks[j]}"
+          chunks_to_delete << chunks[j]
+        end
+        j += 1
+        k += 1
+      end
 
+      chunks_to_delete.each do |e|
+        chunks.delete("#{e}")
+        k -= 1
+      end
+
+      p "latest chunks... #{chunks}"
+      p "k is: #{k}"
+      p "size of chunk:"
+      p chunks.size
+
+       j = 0
+       while j<i-k do
+         temp = chunks.shift
+         chunks << temp
+         j += 1
+       end
+
+      # patch ends
+      
       processed = []
       lines = chunks.each_with_index.map do |chunk1, index|
         next if processed.include? index
